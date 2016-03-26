@@ -353,43 +353,47 @@ func addGeomean(table []*row, c *Collection, unit string, delta bool) []*row {
 	return append(table, row)
 }
 
-func timeScaler(ns float64) func(float64) string {
-	var format string
+func timeScaler(prefix string, ns float64) func(float64) string {
+	var format, unit string
 	var scale float64
 	switch x := ns / 1e9; {
 	case x >= 99.5:
-		format, scale = "%.0fs", 1
+		format, unit, scale = "%.0f", "s", 1
 	case x >= 9.95:
-		format, scale = "%.1fs", 1
+		format, unit, scale = "%.1f", "s", 1
 	case x >= 0.995:
-		format, scale = "%.2fs", 1
+		format, unit, scale = "%.2f", "s", 1
 	case x >= 0.0995:
-		format, scale = "%.0fms", 1000
+		format, unit, scale = "%.0f", "ms", 1000
 	case x >= 0.00995:
-		format, scale = "%.1fms", 1000
+		format, unit, scale = "%.1f", "ms", 1000
 	case x >= 0.000995:
-		format, scale = "%.2fms", 1000
+		format, unit, scale = "%.2f", "ms", 1000
 	case x >= 0.0000995:
-		format, scale = "%.0fµs", 1000*1000
+		format, unit, scale = "%.0f", "µs", 1000*1000
 	case x >= 0.00000995:
-		format, scale = "%.1fµs", 1000*1000
+		format, unit, scale = "%.1f", "µs", 1000*1000
 	case x >= 0.000000995:
-		format, scale = "%.2fµs", 1000*1000
+		format, unit, scale = "%.2f", "µs", 1000*1000
 	case x >= 0.0000000995:
-		format, scale = "%.0fns", 1000*1000*1000
+		format, unit, scale = "%.0f", "ns", 1000*1000*1000
 	case x >= 0.00000000995:
-		format, scale = "%.1fns", 1000*1000*1000
+		format, unit, scale = "%.1f", "ns", 1000*1000*1000
 	default:
-		format, scale = "%.2fns", 1000*1000*1000
+		format, unit, scale = "%.2f", "ns", 1000*1000*1000
 	}
 	return func(ns float64) string {
-		return fmt.Sprintf(format, ns/1e9*scale)
+		return fmt.Sprintf(format+"%s%s", ns/1e9*scale, prefix, unit)
 	}
 }
 
 func newScaler(val float64, unit string) func(float64) string {
 	if unit == "ns/op" {
-		return timeScaler(val)
+		return timeScaler("", val)
+	}
+	if strings.HasSuffix(unit, "-ns/op") {
+		prefix := strings.TrimSuffix(unit, "ns/op")
+		return timeScaler(prefix, val)
 	}
 
 	var format string
